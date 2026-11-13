@@ -1,0 +1,16 @@
+# .kb/ 是本地索引，随时可用 `tools/kb.py index notes` 重建
+.kb/
+__pycache__/
+*.pyc
+
+# 编辑器 / 系统垃圾
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
+
+# 导出与临时包
+dist/
+*.zip
