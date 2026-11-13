@@ -255,7 +255,18 @@ def call_tool(idx, name, args):
 
 
 def mcp_main(idx_path):
-    idx = load_index(idx_path)
+    state = {'idx': load_index(idx_path), 'mtime': os.path.getmtime(idx_path)}
+
+    def current_index():
+        """索引重建过就热重载，避免长会话里看不到新笔记。"""
+        try:
+            mtime = os.path.getmtime(idx_path)
+            if mtime != state['mtime']:
+                state['idx'] = load_index(idx_path)
+                state['mtime'] = mtime
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass          # 索引正在重建/文件被占用，沿用旧索引
+        return state['idx']
 
     def send(obj):
         sys.stdout.write(json.dumps(obj, ensure_ascii=False) + '\n')
@@ -285,7 +296,7 @@ def mcp_main(idx_path):
             name = msg['params'].get('name')
             args = msg['params'].get('arguments') or {}
             try:
-                text = call_tool(idx, name, args)
+                text = call_tool(current_index(), name, args)
                 send({'jsonrpc': '2.0', 'id': mid, 'result': {
                     'content': [{'type': 'text', 'text': text}], 'isError': False}})
             except Exception as exc:                     # noqa: BLE001

@@ -40,6 +40,8 @@ python tools\kb.py mcp
 
 `.kb/index.json` 的生成与查询都**不联网**，内网可用。
 
+MCP 模式会自动检测索引文件变化：新建/修改笔记后只要执行一次 `index`，**正在运行的 agent 会话无需重启**即可检索到新内容。
+
 ## 新增一条知识
 
 在 `notes/` 对应分类下新建 `<英文短名>.md`，开头加 frontmatter：
