@@ -88,33 +88,36 @@ def iter_files(root):
                 yield os.path.join(dirpath, fn)
 
 
-def build_index(root):
+def build_index(roots):
+    roots = [os.path.abspath(r) for r in roots]
+    base = roots[0] if len(roots) == 1 else os.path.commonpath(roots)
     chunks = []
-    for path in iter_files(root):
-        rel = os.path.relpath(path, root)
-        try:
-            with open(path, encoding='utf-8', errors='replace') as f:
-                lines = f.read().splitlines()
-        except OSError:
-            continue
-        start = 0
-        if lines and lines[0].strip() == '---':          # 跳过 YAML frontmatter
-            for i in range(1, min(len(lines), 80)):
-                if lines[i].strip() == '---':
-                    start = i + 1
-                    break
-        for heading, s, e in split_sections(lines, start):
-            for ch in split_section(lines, s, e, heading):
-                toks = tokenize(ch['text'])
-                if len(ch['text']) < MIN_CHUNK and not heading:
-                    continue
-                ch['path'] = rel
-                ch['len'] = len(toks)
-                tf = {}
-                for t in toks:
-                    tf[t] = tf.get(t, 0) + 1
-                ch['tf'] = tf
-                chunks.append(ch)
+    for root in roots:
+        for path in iter_files(root):
+            rel = os.path.relpath(path, base)
+            try:
+                with open(path, encoding='utf-8', errors='replace') as f:
+                    lines = f.read().splitlines()
+            except OSError:
+                continue
+            start = 0
+            if lines and lines[0].strip() == '---':          # 跳过 YAML frontmatter
+                for i in range(1, min(len(lines), 80)):
+                    if lines[i].strip() == '---':
+                        start = i + 1
+                        break
+            for heading, s, e in split_sections(lines, start):
+                for ch in split_section(lines, s, e, heading):
+                    toks = tokenize(ch['text'])
+                    if len(ch['text']) < MIN_CHUNK and not heading:
+                        continue
+                    ch['path'] = rel
+                    ch['len'] = len(toks)
+                    tf = {}
+                    for t in toks:
+                        tf[t] = tf.get(t, 0) + 1
+                    ch['tf'] = tf
+                    chunks.append(ch)
 
     df = {}
     for ch in chunks:
@@ -124,7 +127,8 @@ def build_index(root):
     avgdl = (sum(c['len'] for c in chunks) / n) if n else 0.0
     return {
         'version': 1,
-        'root': os.path.abspath(root),
+        'root': base,
+        'roots': roots,
         'built_at': time.strftime('%Y-%m-%d %H:%M:%S'),
         'n': n,
         'avgdl': avgdl,
@@ -313,7 +317,7 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest='cmd', required=True)
     p1 = sub.add_parser('index')
-    p1.add_argument('root')
+    p1.add_argument('roots', nargs='+')
     p1.add_argument('--out', default=DEFAULT_INDEX)
     p2 = sub.add_parser('search')
     p2.add_argument('query')
@@ -324,7 +328,7 @@ def main():
     a = ap.parse_args()
 
     if a.cmd == 'index':
-        idx = build_index(a.root)
+        idx = build_index(a.roots)
         os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
         with open(a.out, 'w', encoding='utf-8') as f:
             json.dump(idx, f, ensure_ascii=False)

@@ -29,7 +29,7 @@ knowledge-base/
 
 ```powershell
 # 建/重建索引
-python tools\kb.py index notes
+python tools\kb.py index notes journal
 
 # 命令行检索
 python tools\kb.py search "codex 一直重连怎么修" -k 5
@@ -41,6 +41,26 @@ python tools\kb.py mcp
 `.kb/index.json` 的生成与查询都**不联网**，内网可用。
 
 MCP 模式会自动检测索引文件变化：新建/修改笔记后只要执行一次 `index`，**正在运行的 agent 会话无需重启**即可检索到新内容。
+
+## 每日工作流（待办 + 总结）
+
+每天一页 `journal/YYYY-MM-DD.md`，模板在 `templates/daily.md`。早上排、白天记、下班收：
+
+```powershell
+python tools\daily.py new             # 早上：生成今天的页面
+python tools\daily.py add "写周报"     # 白天：随手加一条待办
+python tools\daily.py show            # 随时看今天还剩什么
+python tools\daily.py done 2          # 勾掉第 2 条
+python tools\daily.py html            # 生成仪表盘并在浏览器打开
+python tools\daily.py close           # 下班：标记已总结
+python tools\daily.py open            # 用默认程序打开今天的笔记
+```
+
+`journal` 也在索引范围内，所以 AI 也能查「上周三我干了什么」：
+
+```powershell
+python tools\kb.py index notes journal
+```
 
 ## 新增一条知识
 
@@ -57,7 +77,7 @@ status: draft | verified
 ```
 
 正文建议按「现象 → 根因 → 解决 → 验证 → 踩过的坑」来写，方便别人复用。
-写完执行一次 `python tools\kb.py index notes` 让新内容可被检索到。
+写完执行一次 `python tools\kb.py index notes journal` 让新内容可被检索到。
 
 ## 接进 agent
 
